@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S&P 500 Data (via SPY)</title>
+  <title>S&P 500 and NASDAQ Data</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,15 +11,18 @@
       color: #333;
       display: flex;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px;
     }
     .container {
       background-color: white;
       padding: 20px;
+      margin: 10px;
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       text-align: center;
+      width: 300px;
     }
     .data-item {
       margin: 10px 0;
@@ -27,24 +30,37 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>S&P 500 Data (SPY)</h1>
+  <div class="container" id="sp500-container">
+    <h1>S&P 500 (SPY)</h1>
     <div class="data-item">
-      <strong>Current End of Day Price:</strong> <span id="current-price">Loading...</span>
+      <strong>Current Price:</strong> <span id="spy-current">Loading...</span>
     </div>
     <div class="data-item">
-      <strong>Top Most End of Day Price (10Y):</strong> <span id="top-price">Loading...</span>
+      <strong>Top Price (10Y):</strong> <span id="spy-top">Loading...</span>
     </div>
     <div class="data-item">
-      <strong>Percentage Change from Top:</strong> <span id="percentage-change">Loading...</span>
+      <strong>% Change from Top:</strong> <span id="spy-change">Loading...</span>
+    </div>
+  </div>
+
+  <div class="container" id="nasdaq-container">
+    <h1>NASDAQ (QQQ)</h1>
+    <div class="data-item">
+      <strong>Current Price:</strong> <span id="qqq-current">Loading...</span>
+    </div>
+    <div class="data-item">
+      <strong>Top Price (10Y):</strong> <span id="qqq-top">Loading...</span>
+    </div>
+    <div class="data-item">
+      <strong>% Change from Top:</strong> <span id="qqq-change">Loading...</span>
     </div>
   </div>
 
   <script>
     const apiKey = "6E4VML159PQTJM5R"; // 🔑 Replace with your Alpha Vantage API key
-    const apiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=SPY&apikey=${apiKey}`;
 
-    async function fetchStockData() {
+    async function fetchData(symbol, prefix) {
+      const apiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`;
       try {
         const response = await fetch(apiUrl);
         const data = await response.json();
@@ -53,28 +69,28 @@
           throw new Error("Invalid response from Alpha Vantage (maybe API limit hit).");
         }
 
-        // Extract daily closing prices
         const timeSeries = data["Time Series (Daily)"];
-        const dates = Object.keys(timeSeries).sort(); // sorted ascending
-        const prices = dates.map(date => parseFloat(timeSeries[date]["4. close"]));
+        const dates = Object.keys(timeSeries).sort(); // oldest → newest
+        const prices = dates.map(d => parseFloat(timeSeries[d]["4. close"]));
 
-        const currentPrice = prices[prices.length - 1]; // latest close
+        const currentPrice = prices[prices.length - 1];
         const topPrice = Math.max(...prices);
-        const percentageChange = ((currentPrice - topPrice) / topPrice * 100).toFixed(2);
+        const pctChange = ((currentPrice - topPrice) / topPrice * 100).toFixed(2);
 
-        document.getElementById("current-price").textContent = currentPrice.toFixed(2);
-        document.getElementById("top-price").textContent = topPrice.toFixed(2);
-        document.getElementById("percentage-change").textContent = `${percentageChange}%`;
-
-      } catch (error) {
-        console.error("Error fetching the data:", error);
-        document.getElementById("current-price").textContent = "Error";
-        document.getElementById("top-price").textContent = "Error";
-        document.getElementById("percentage-change").textContent = "Error";
+        document.getElementById(`${prefix}-current`).textContent = currentPrice.toFixed(2);
+        document.getElementById(`${prefix}-top`).textContent = topPrice.toFixed(2);
+        document.getElementById(`${prefix}-change`).textContent = `${pctChange}%`;
+      } catch (err) {
+        console.error(`Error fetching ${symbol}:`, err);
+        document.getElementById(`${prefix}-current`).textContent = "Error";
+        document.getElementById(`${prefix}-top`).textContent = "Error";
+        document.getElementById(`${prefix}-change`).textContent = "Error";
       }
     }
 
-    fetchStockData();
+    // Fetch both SPY (S&P 500) and QQQ (NASDAQ-100)
+    fetchData("SPY", "spy");
+    fetchData("QQQ", "qqq");
   </script>
 </body>
 </html>
