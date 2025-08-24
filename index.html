@@ -1,70 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S&P 500 Data</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        .data-item {
-            margin: 10px 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S&P 500 Data (via SPY)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .data-item {
+      margin: 10px 0;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>S&P 500 Data</h1>
-        <div class="data-item">
-            <strong>Current End of Day Price:</strong> <span id="current-price">Loading...</span>
-        </div>
-        <div class="data-item">
-            <strong>Top Most End of Day Price:</strong> <span id="top-price">Loading...</span>
-        </div>
-        <div class="data-item">
-            <strong>Percentage Change:</strong> <span id="percentage-change">Loading...</span>
-        </div>
+  <div class="container">
+    <h1>S&P 500 Data (SPY)</h1>
+    <div class="data-item">
+      <strong>Current End of Day Price:</strong> <span id="current-price">Loading...</span>
     </div>
+    <div class="data-item">
+      <strong>Top Most End of Day Price (10Y):</strong> <span id="top-price">Loading...</span>
+    </div>
+    <div class="data-item">
+      <strong>Percentage Change from Top:</strong> <span id="percentage-change">Loading...</span>
+    </div>
+  </div>
 
-    <script>
-        const apiUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=10y&interval=1d&indicators=quote&includeTimestamps=true';
+  <script>
+    const apiKey = "6E4VML159PQTJM5R"; // 🔑 Replace with your Alpha Vantage API key
+    const apiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=SPY&apikey=${apiKey}`;
 
-        async function fetchStockData() {
-            try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                const prices = data.chart.result[0].indicators.quote[0].close;
+    async function fetchStockData() {
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
 
-                const topPrice = Math.max(...prices);
-                const currentPrice = prices[prices.length - 1];
-                const percentageChange = ((currentPrice - topPrice) / topPrice * 100).toFixed(2);
-
-                document.getElementById('current-price').textContent = currentPrice.toFixed(2);
-                document.getElementById('top-price').textContent = topPrice.toFixed(2);
-                document.getElementById('percentage-change').textContent = `${percentageChange}%`;
-            } catch (error) {
-                console.error('Error fetching the data:', error);
-                document.getElementById('current-price').textContent = 'Error';
-                document.getElementById('top-price').textContent = 'Error';
-                document.getElementById('percentage-change').textContent = 'Error';
-            }
+        if (!data["Time Series (Daily)"]) {
+          throw new Error("Invalid response from Alpha Vantage (maybe API limit hit).");
         }
 
-        fetchStockData();
-    </script>
+        // Extract daily closing prices
+        const timeSeries = data["Time Series (Daily)"];
+        const dates = Object.keys(timeSeries).sort(); // sorted ascending
+        const prices = dates.map(date => parseFloat(timeSeries[date]["4. close"]));
+
+        const currentPrice = prices[prices.length - 1]; // latest close
+        const topPrice = Math.max(...prices);
+        const percentageChange = ((currentPrice - topPrice) / topPrice * 100).toFixed(2);
+
+        document.getElementById("current-price").textContent = currentPrice.toFixed(2);
+        document.getElementById("top-price").textContent = topPrice.toFixed(2);
+        document.getElementById("percentage-change").textContent = `${percentageChange}%`;
+
+      } catch (error) {
+        console.error("Error fetching the data:", error);
+        document.getElementById("current-price").textContent = "Error";
+        document.getElementById("top-price").textContent = "Error";
+        document.getElementById("percentage-change").textContent = "Error";
+      }
+    }
+
+    fetchStockData();
+  </script>
 </body>
 </html>
